@@ -195,7 +195,11 @@ lxw_worksheet_new(lxw_worksheet_init_data *init_data)
     if (init_data && init_data->optimize) {
         FILE *tmpfile;
 
-        tmpfile = lxw_tmpfile(init_data->tmpdir);
+        worksheet->optimize_buffer = NULL;
+        worksheet->optimize_buffer_size = 0;
+        tmpfile = lxw_get_filehandle(&worksheet->optimize_buffer,
+                                     &worksheet->optimize_buffer_size,
+                                     init_data->tmpdir);
         if (!tmpfile) {
             LXW_ERROR("Error creating tmpfile() for worksheet in "
                       "'constant_memory' mode.");
@@ -2524,18 +2528,27 @@ _worksheet_write_optimized_sheet_data(lxw_worksheet *self)
 
         lxw_xml_start_tag(self->file, "sheetData", NULL);
 
-        /* Flush and rewind the temp file. */
+        /* Flush the temp file. */
         fflush(self->optimize_tmpfile);
-        rewind(self->optimize_tmpfile);
 
-        while (read_size) {
-            read_size =
-                fread(buffer, 1, LXW_BUFFER_SIZE, self->optimize_tmpfile);
+        if (self->optimize_buffer) {
             /* Ignore return value. There is no easy way to raise error. */
-            (void) fwrite(buffer, 1, read_size, self->file);
+            (void) fwrite(self->optimize_buffer, self->optimize_buffer_size,
+                          1, self->file);
+        }
+        else {
+            /* Rewind the temp file. */
+            rewind(self->optimize_tmpfile);
+            while (read_size) {
+                read_size =
+                    fread(buffer, 1, LXW_BUFFER_SIZE, self->optimize_tmpfile);
+                /* Ignore return value. There is no easy way to raise error. */
+                (void) fwrite(buffer, 1, read_size, self->file);
+            }
         }
 
         fclose(self->optimize_tmpfile);
+        free(self->optimize_buffer);
 
         lxw_xml_end_tag(self->file, "sheetData");
     }
@@ -2625,6 +2638,9 @@ _worksheet_write_page_setup(lxw_worksheet *self)
         LXW_PUSH_ATTRIBUTES_STR("orientation", "portrait");
     else
         LXW_PUSH_ATTRIBUTES_STR("orientation", "landscape");
+
+    if (self->black_white)
+        LXW_PUSH_ATTRIBUTES_STR("blackAndWhite", "1");
 
     /* Set start page active flag. */
     if (self->page_start)
@@ -3480,8 +3496,8 @@ lxw_worksheet_prepare_header_image(lxw_worksheet *self,
     header_image_vml = calloc(1, sizeof(lxw_vml_obj));
     GOTO_LABEL_ON_MEM_ERROR(header_image_vml, mem_error);
 
-    header_image_vml->width = object_props->width;
-    header_image_vml->height = object_props->height;
+    header_image_vml->width = (uint32_t) object_props->width;
+    header_image_vml->height = (uint32_t) object_props->height;
     header_image_vml->x_dpi = object_props->x_dpi;
     header_image_vml->y_dpi = object_props->y_dpi;
     header_image_vml->rel_index = 1;
@@ -4251,7 +4267,7 @@ _get_image_properties(lxw_object_properties *image_props)
 
     size_read = fread(buffer, 1, LXW_IMAGE_BUFFER_SIZE, image_props->stream);
     while (size_read) {
-        MD5_Update(&md5_context, buffer, size_read);
+        MD5_Update(&md5_context, buffer, (unsigned long) size_read);
         size_read =
             fread(buffer, 1, LXW_IMAGE_BUFFER_SIZE, image_props->stream);
     }
@@ -8436,7 +8452,7 @@ worksheet_write_rich_string(lxw_worksheet *self,
         return err;
 
     /* Create a tmp file for the styles object. */
-    tmpfile = lxw_tmpfile(self->tmpdir);
+    tmpfile = lxw_get_filehandle(&rich_string, NULL, self->tmpdir);
     if (!tmpfile)
         return LXW_ERROR_CREATING_TMPFILE;
 
@@ -8472,20 +8488,23 @@ worksheet_write_rich_string(lxw_worksheet *self,
     lxw_styles_free(styles);
     lxw_format_free(default_format);
 
-    /* Flush the file and read the size to calculate the required memory. */
+    /* Flush the file. */
     fflush(tmpfile);
-    file_size = ftell(tmpfile);
 
-    /* Allocate a buffer for the rich string xml data. */
-    rich_string = calloc(file_size + 1, 1);
-    GOTO_LABEL_ON_MEM_ERROR(rich_string, mem_error);
+    if (!rich_string) {
+        /* Read the size to calculate the required memory. */
+        file_size = ftell(tmpfile);
+        /* Allocate a buffer for the rich string xml data. */
+        rich_string = calloc(file_size + 1, 1);
+        GOTO_LABEL_ON_MEM_ERROR(rich_string, mem_error);
 
-    /* Rewind the file and read the data into the memory buffer. */
-    rewind(tmpfile);
-    if (fread(rich_string, file_size, 1, tmpfile) < 1) {
-        fclose(tmpfile);
-        free(rich_string);
-        return LXW_ERROR_READING_TMPFILE;
+        /* Rewind the file and read the data into the memory buffer. */
+        rewind(tmpfile);
+        if (fread(rich_string, file_size, 1, tmpfile) < 1) {
+            fclose(tmpfile);
+            free(rich_string);
+            return LXW_ERROR_READING_TMPFILE;
+        }
     }
 
     /* Close the temp file. */
@@ -9668,6 +9687,10 @@ worksheet_set_header_opt(lxw_worksheet *self, const char *string,
         return LXW_ERROR_PARAMETER_VALIDATION;
     }
 
+    /* Free any previous header string so we can overwrite it. */
+    free(self->header);
+    self->header = NULL;
+
     if (options) {
         /* Ensure there are enough images to match the placeholders. There is
          * a potential bug where there are sufficient images but in the wrong
@@ -9722,8 +9745,6 @@ worksheet_set_header_opt(lxw_worksheet *self, const char *string,
         }
     }
 
-    /* Clear existing header, if any. */
-    free(self->header);
     self->header = tmp_header;
     self->header_footer_changed = LXW_TRUE;
 
@@ -9790,6 +9811,10 @@ worksheet_set_footer_opt(lxw_worksheet *self, const char *string,
         return LXW_ERROR_PARAMETER_VALIDATION;
     }
 
+    /* Free any previous footer string so we can overwrite it. */
+    free(self->footer);
+    self->footer = NULL;
+
     if (options) {
         /* Ensure there are enough images to match the placeholders. There is
          * a potential bug where there are sufficient images but in the wrong
@@ -9844,8 +9869,6 @@ worksheet_set_footer_opt(lxw_worksheet *self, const char *string,
         }
     }
 
-    /* Clear existing header, if any. */
-    free(self->footer);
     self->footer = tmp_footer;
     self->header_footer_changed = LXW_TRUE;
 
@@ -10053,6 +10076,16 @@ worksheet_set_print_scale(lxw_worksheet *self, uint16_t scale)
     self->fit_page = LXW_FALSE;
 
     self->print_scale = scale;
+    self->page_setup_changed = LXW_TRUE;
+}
+
+/*
+ * Set the print in black and white option.
+ */
+void
+worksheet_print_black_and_white(lxw_worksheet *self)
+{
+    self->black_white = LXW_TRUE;
     self->page_setup_changed = LXW_TRUE;
 }
 

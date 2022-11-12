@@ -1793,7 +1793,7 @@ typedef struct lxw_object_properties {
     FILE *stream;
     uint8_t image_type;
     uint8_t is_image_buffer;
-    unsigned char *image_buffer;
+    char *image_buffer;
     size_t image_buffer_size;
     double width;
     double height;
@@ -2108,6 +2108,8 @@ typedef struct lxw_worksheet {
 
     FILE *file;
     FILE *optimize_tmpfile;
+    char *optimize_buffer;
+    size_t optimize_buffer_size;
     struct lxw_table_rows *table;
     struct lxw_table_rows *hyperlinks;
     struct lxw_table_rows *comments;
@@ -2188,6 +2190,7 @@ typedef struct lxw_worksheet {
     uint8_t show_zeros;
     uint8_t vcenter;
     uint8_t zoom_scale_normal;
+    uint8_t black_white;
     uint8_t num_validations;
     uint8_t has_dynamic_arrays;
     char *vba_codename;
@@ -5371,6 +5374,18 @@ void worksheet_set_start_page(lxw_worksheet *worksheet, uint16_t start_page);
  *
  */
 void worksheet_set_print_scale(lxw_worksheet *worksheet, uint16_t scale);
+
+/**
+ * @brief Set the worksheet to print in black and white
+ *
+ * @param worksheet Pointer to a lxw_worksheet instance to be updated.
+ *
+ * Set the option to print the worksheet in black and white:
+ * @code
+ *     worksheet_print_black_and_white(worksheet);
+ * @endcode
+ */
+void worksheet_print_black_and_white(lxw_worksheet *worksheet);
 
 /**
  * @brief Display the worksheet cells from right to left for some versions of

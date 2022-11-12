@@ -29,7 +29,7 @@ know how to proceed.
 
 The only non-optional dependency when building libxlsxwriter is [Zlib](http://www.zlib.net).
 
-You can do install `zlib` from source as follows:
+You can install `zlib` from source as follows:
 
     curl -O -L  http://www.zlib.net/zlib-1.2.11.tar.gz
     tar zxf zlib-1.2.11.tar.gz
@@ -47,7 +47,7 @@ libraries. For example:
 
 The zlib version must be >= 1.2.8 to avoid compilation issues.
 
-@note There optional dependencies that can be installed for testing.
+@note There are optional dependencies that can be installed for testing.
 See @ref running_the_tests.
 
 
@@ -154,20 +154,20 @@ Using your source code editor create a file like the following called
     }
     @endcode
 
-If you executed the `"make install"` command in the previous section then you
+If you executed the install commands in the previous section then you
 should be able to compile the program as follows:
 
     cc myexcel.c -o myexcel -lxlsxwriter
 
-In some environments, or if you changed the `PREFIX` location, you may
+In some OS environments, or if you changed the `PREFIX` location, you may
 have to provide explicit `include` and `lib` paths:
 
     cc myexcel.c -o myexcel -I/usr/local/include -L/usr/local/lib -lxlsxwriter
 
 You can also use
-[pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/) (after you
-use `"make install"`) to automatically determine the required arguments and
-paths:
+[pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/)
+(after installation of the library) to automatically determine the required
+arguments and paths:
 
     $ pkg-config --cflags --libs xlsxwriter
     -I/usr/local/include -L/usr/local/lib -lxlsxwriter -lz
@@ -536,27 +536,27 @@ with larger CMake builds. In particular it enables building on Windows.
 
 The following are various compilation targets and options for both build systems:
 
-| Make                     | CMake                                      | Description                         |
-| :----------------------- | :----------------------------------------- | :---------------------------------- |
-| `examples`               | `-DBUILD_EXAMPLES=ON`                      | Build the example                   |
-| `test`                   | `-DBUILD_TESTS=ON`                         | Build the tests                     |
-| `USE_DTOA_LIBRARY=1`     | `-DUSE_DTOA_LIBRARY=ON`                    | Use alternative double sprintf      |
-| `USE_FMEMOPEN=1`         | `-DUSE_FMEMOPEN=ON`                        | Use fmemopen() for temp image files |
-| `USE_OPENSSL_MD5=1`      | `-DUSE_OPENSSL_MD5=ON`                     | Use OpenSSL for MD5 digest          |
-| `USE_NO_MD5=1`           | `-DUSE_NO_MD5=ON`                          | Don't use a MD5 digest              |
-| `USE_SYSTEM_MINIZIP=1`   | `-DUSE_SYSTEM_MINIZIP=ON`                  | Use system minzip library           |
-| `USE_STANDARD_TMPFILE=1` | `-DUSE_STANDARD_TMPFILE=ON`                | Use system tmpfile() function       |
-| `USE_BIG_ENDIAN=1`       | `-DUSE_BIG_ENDIAN=ON`                      | Build on big endian systems         |
-| `universal_binary`       | `-DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"` | Create a macOS "Universal Binary"   |
-|                          | `-DBUILD_SHARED_LIBS=ON`                   | Build shared library (default on)   |
-|                          | `-DUSE_STATIC_MSVC_RUNTIME=ON`             | Use static msvc runtime library     |
-|                          | `-DCMAKE_BUILD_TYPE=Release`               | Set the build type.                 |
+| Make                     | CMake                                      | Description                                           |
+| :----------------------- | :----------------------------------------- | :---------------------------------------------------- |
+| `examples`               | `-DBUILD_EXAMPLES=ON`                      | Build the example                                     |
+| `test`                   | `-DBUILD_TESTS=ON`                         | Build the tests                                       |
+| `USE_DTOA_LIBRARY=1`     | `-DUSE_DTOA_LIBRARY=ON`                    | Use alternative double in sprintf                     |
+| `USE_MEM_FILE=1`         | `-DUSE_MEM_FILE=ON`                        | Use fmemopen()/open_memstream() instead of temp files |
+| `USE_OPENSSL_MD5=1`      | `-DUSE_OPENSSL_MD5=ON`                     | Use OpenSSL for MD5 digest                            |
+| `USE_NO_MD5=1`           | `-DUSE_NO_MD5=ON`                          | Don't use a MD5 digest                                |
+| `USE_SYSTEM_MINIZIP=1`   | `-DUSE_SYSTEM_MINIZIP=ON`                  | Use system minzip library                             |
+| `USE_STANDARD_TMPFILE=1` | `-DUSE_STANDARD_TMPFILE=ON`                | Use system tmpfile() function                         |
+| `USE_BIG_ENDIAN=1`       | `-DUSE_BIG_ENDIAN=ON`                      | Build on big endian systems                           |
+| `universal_binary`       | `-DCMAKE_OSX_ARCHITECTURES="x86_64;arm64"` | Create a macOS "Universal Binary"                     |
+|                          | `-DBUILD_SHARED_LIBS=ON`                   | Build shared library (default on)                     |
+|                          | `-DUSE_STATIC_MSVC_RUNTIME=ON`             | Use static msvc runtime library                       |
+|                          | `-DCMAKE_BUILD_TYPE=Release`               | Set the build type.                                   |
 
 
 The compilation options would be used as follows:
 
     # Make
-    make examples USE_DTOA_LIBRARY=1`
+    make examples USE_DTOA_LIBRARY=1
 
     # CMake
     cd cmake
@@ -573,11 +573,8 @@ Each of the options are explained below:
 
 - `USE_DTOA_LIBRARY`: See @ref gsg_dtoa "using a double formatting library".
 
-- `USE_FMEMOPEN`: When inserting an image from a buffer using
-  `worksheet_insert_image_buffer()` libxlsxwriter writes the buffer to a
-  temporary file before processing it. In order to avoid this small overhead
-  you can use this option to invoke `fmemopen()` instead. This option isn't on
-  by default since it isn't supported on Windows.
+- `USE_MEM_FILE`: Use fmemopen()/open_memstream() instead of temporary files.
+  This option isn't on by default since it isn't supported on Windows.
 
 - `USE_OPENSSL_MD5`: Uses OpenSSL to provide a MD5 digest of image files in
   order to avoid storing duplicates. See @ref gsg_md5.

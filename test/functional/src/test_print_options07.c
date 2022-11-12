@@ -1,7 +1,7 @@
 /*****************************************************************************
  * Test cases for libxlsxwriter.
  *
- * Simple test case to test data writing.
+ * Test to compare output against Excel files.
  *
  * Copyright 2014-2022, John McNamara, jmcnamara@cpan.org
  *
@@ -11,13 +11,15 @@
 
 int main() {
 
-    lxw_workbook_options options = {LXW_FALSE, ".", LXW_FALSE, NULL, NULL};
-
-    lxw_workbook  *workbook  = workbook_new_opt("test_tmpdir01.xlsx", &options);
+    lxw_workbook  *workbook  = workbook_new("test_print_options07.xlsx");
     lxw_worksheet *worksheet = workbook_add_worksheet(workbook, NULL);
 
-    worksheet_write_string(worksheet, 0, 0, "Hello", NULL);
-    worksheet_write_number(worksheet, 1, 0, 123,     NULL);
+    worksheet_write_string(worksheet, 0, 0, "Foo" , NULL);
+
+    worksheet_set_paper(worksheet, 9);
+    worksheet->vertical_dpi = 200;
+
+    worksheet_print_black_and_white(worksheet);
 
     return workbook_close(workbook);
 }
