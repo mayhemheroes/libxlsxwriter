@@ -1,0 +1,5 @@
+project: libxlsxwriter
+target: lxw-quote-sheetname
+cmds:
+  - cmd: /fuzz_lxw_quote_sheetname
+    libfuzzer: true
