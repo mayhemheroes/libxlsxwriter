@@ -1,0 +1,55 @@
+# Dictionary for libxlsxwriter xlsx_fuzzer.
+# The harness consumes the input via FuzzedDataProvider: a leading byte block, then row/col counts,
+# then ConsumeRandomLengthString() cell strings. These tokens steer the cell-string content toward
+# values that exercise libxlsxwriter's XML escaping / shared-string-table / number-vs-string paths,
+# plus a few structural .xlsx/XML tokens the writer emits.
+
+# XML metacharacters that hit the string-escaping path in the writer
+"&"
+"<"
+">"
+"\""
+"'"
+"&amp;"
+"&lt;"
+"&gt;"
+"&quot;"
+"&#"
+"&#xA;"
+"<![CDATA["
+"]]>"
+"<?xml"
+"?>"
+
+# control / whitespace chars that trigger _xml_ escaping and string normalization
+"\x00"
+"\x0a"
+"\x0d"
+"\x09"
+"_x000D_"
+"_x0009_"
+
+# values that may be interpreted as numbers / formulas / booleans by spreadsheet logic
+"="
+"0"
+"-1"
+"1.7976931348623157E+308"
+"NaN"
+"Inf"
+"TRUE"
+"FALSE"
+
+# tokens that appear in the generated .xlsx container / sheet XML
+"sheet"
+"Sheet1"
+"worksheet"
+"workbook"
+"sharedStrings"
+"xl/"
+"[Content_Types].xml"
+"_rels"
+"r:id"
+"inlineStr"
+"<c r=\"A1\""
+"<v>"
+"<t>"

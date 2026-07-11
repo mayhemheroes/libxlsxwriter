@@ -1,0 +1,9 @@
+project: libxlsxwriter
+target: xlsx_fuzzer
+testsuite:
+  - https://$MAYHEM_DOMAIN/$MAYHEM_PROJECT/$MAYHEM_TARGET/testsuite.tar
+  - file://mayhem/xlsx_fuzzer/testsuite
+cmds:
+  - cmd: /mayhem/xlsx_fuzzer
+    libfuzzer: true
+    dictionary: /mayhem/mayhem/xlsx_fuzzer.dict
